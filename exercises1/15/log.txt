@@ -1,0 +1,5 @@
+/api/home
+/api/user
+/api/home
+/api/user
+/api/home

@@ -1,0 +1,5 @@
+2026-08-31 info: start
+2026-08-31 error: file not found
+2026-08-31 info: process done
+2026-08-31 error: timeout
+2026-08-31 info: exit
