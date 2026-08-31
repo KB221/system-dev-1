@@ -1,0 +1,5 @@
+    49258      4 -rw-r-----   1 zyz      zyz            11 Aug 30 23:07 work/2502007055/input/docs/notes\ one.txt
+    49259      4 -rw-r-----   1 zyz      zyz             7 Aug 30 23:07 work/2502007055/input/docs/secret.txt
+    19404      4 -rw-r-----   1 zyz      zyz            11 Aug 30 23:07 work/2502007055/input/docs/notes.one.txt
+    19405      4 -rw-r-----   1 zyz      zyz             7 Aug 30 23:07 work/2502007055/input/docs/.secret.txt
+    49261      0 -rw-r-----   1 zyz      zyz             0 Aug 30 23:07 work/2502007055/input/tmp/empty.txt
