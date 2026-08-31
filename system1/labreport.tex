@@ -1,0 +1,208 @@
+
+\documentclass[12pt,a4paper]{article}
+\usepackage{ctex}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{enumitem}
+
+% 全局代码块样式
+\lstset{
+    basicstyle=\ttfamily\small,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    backgroundcolor=\color{gray!5},
+    breaklines=true,
+    columns=flexible,
+    captionpos=b,
+    aboveskip=1em,
+    belowskip=1em
+}
+
+% 列表间距
+\setlist{itemsep=0.2em, topsep=0.5em}
+
+\begin{document}
+
+\title{系统开发工具基础 实验报告}
+\author{孔博\\25020007055}
+\date{2026年8月30日}
+\maketitle
+
+\section{实验一：含空格文件名的批量整理}
+\subsection{实验代码}
+\begin{lstlisting}[language=bash, caption=目录创建与测试文件生成]
+mkdir -p q01 && cd q01
+
+mkdir -p input/docs input/tmp
+
+cat > input/docs/notes.one.txt <<EOF
+alpha
+beta
+EOF
+echo "hidden" > input/docs/.secret.txt
+
+touch input/tmp/empty.txt
+
+cat > input/run.log <<EOF
+2026-08-30 start
+2026-08-30 stop
+EOF
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash, caption=文件复制、权限配置与清单生成]
+mkdir -p work/2502007055
+
+find input -type f -name "*.txt" -exec cp --parents {} work/2502007055/ \;
+
+find work/2502007055 -type d -exec chmod 750 {} \;
+
+find work/2502007055 -type f -exec chmod 640 {} \;
+
+find work/2502007055 -type f -ls > inventory.txt
+\end{lstlisting}
+
+\subsection{实验结果}
+\begin{enumerate}
+  \item 目录与文件验证：执行 \verb|ls -la input| 可显示全部文件，包含以点开头的隐藏文件 \verb|.secret.txt|，符合长格式展示要求。
+  \item 批量复制结果：\verb|work| 目录完整保留 \verb|input/docs|、\verb|input/tmp| 的层级结构，所有txt文件复制完成，文件名含空格可正常处理。
+  \item 权限配置结果：所有子目录权限为750，所有普通文件权限为640。
+  \item 清单文件：\verb|inventory.txt| 中逐条记录了文件的字节数、相对路径等信息。
+\end{enumerate}
+
+\section{实验二：随机访问日志统计}
+\subsection{实验代码}
+\begin{lstlisting}[language=bash, caption=analyze.sh 统计脚本]
+#!/bin/bash
+
+# 接收CSV文件路径参数
+csv_file="$1"
+
+# 文件不存在时，错误输出到stderr，返回非零退出码
+if [ ! -f "$csv_file" ]; then
+    echo "错误：文件 $csv_file 不存在" >&2
+    exit 1
+fi
+
+echo "===== 5xx 访问最多的前 2 个 path ====="
+# 提取5xx状态的路径，统计次数并按规则排序
+awk -F',' 'NR>1 && $4 ~ /^5/{print $3}' "$csv_file" \
+| sort \
+| uniq -c \
+| sort -k1,1nr -k2,2 \
+| head -n 2
+
+echo -e "\n===== 平均 latency_ms（保留两位小数） ====="
+# 跳过表头，计算延迟平均值
+awk -F',' 'NR>1 {sum += $5; cnt++} END{printf "%.2f\n", sum/cnt}' "$csv_file"
+\end{lstlisting}
+
+\subsection{实验结果}
+\begin{enumerate}
+  \item 正常文件运行输出：
+\begin{lstlisting}
+===== 5xx 访问最多的前 2 个 path =====
+      3 /api/orders
+      2 /api/users
+
+===== 平均 latency_ms（保留两位小数） =====
+193.75
+\end{lstlisting}
+  \item 异常场景验证：对不存在的文件执行脚本，错误信息输出至标准错误流；执行 \verb|echo $?| 返回退出码1，满足非零退出要求。
+\end{enumerate}
+
+\section{实验三：制造、解决并解释一次合并冲突}
+\subsection{实验代码}
+\begin{lstlisting}[language=bash, caption=仓库初始化与分支创建]
+mkdir -p q03 && cd q03
+git init
+
+echo "mode=normal" > config.txt
+git add config.txt
+git commit -m "init config mode=normal"
+
+git checkout -b feature-a
+echo "mode=safe" > config.txt
+git add config.txt
+git commit -m "feature-a change to safe"
+
+git checkout main
+git checkout -b feature-b
+echo "mode=fast" > config.txt
+git add config.txt
+git commit -m "feature-b change to fast"
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash, caption=分支合并与冲突解决]
+git checkout main
+git merge feature-a
+
+git merge feature-b
+
+git add config.txt
+git commit -m "resolve merge conflict: keep safe, add note=reviewed"
+\end{lstlisting}
+
+\subsection{实验结果}
+\begin{enumerate}
+  \item 冲突现象：合并feature-b时，\verb|config.txt| 出现Git冲突标记，\verb|<<<<<<< HEAD| 标记当前分支内容，\verb|>>>>>>> feature-b| 标记待合并分支内容。
+  \item 冲突解决：最终文件保留 \verb|mode=safe|，新增一行 \verb|note=reviewed|，完全删除冲突标记。
+  \item 历史验证：执行 \verb|git log --all --graph --decorate --oneline| 可查看分支分叉、合并的图形化提交历史；执行 \verb|git status| 显示工作区干净。
+\end{enumerate}
+
+\section{实验四：修复并构建一页技术说明}
+\subsection{实验代码}
+\begin{lstlisting}[language=tex, caption=report.tex 文档源码]
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{booktabs}
+
+\begin{document}
+\title{Tool Report}
+\author{孔博-25020007055}
+\maketitle
+
+\section{Result}
+
+The formula \ref{eq:sum} shown below is a summation formula.
+\begin{equation}
+\label{eq:sum}
+S = \sum_{i=1}^{n} x_i
+\end{equation}
+
+Table \ref{tab:data} shows two groups of experimental data.
+\begin{table}[htbp]
+  \centering
+  \caption{Experimental Data}
+  \label{tab:data}
+  \begin{tabular}{cc}
+    \toprule
+    Group A & Group B \\
+    \midrule
+    10 & 20 \\
+    30 & 40 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\end{document}
+\end{lstlisting}
+
+编译命令：
+\begin{lstlisting}[language=bash]
+latexmk -pdf -halt-on-error report.tex
+\end{lstlisting}
+
+\subsection{实验结果}
+\begin{enumerate}
+  \item 成功生成 \verb|report.pdf|，文档结构完整，包含标题、作者、章节与正文。
+  \item 公式自动编号，正文通过 \verb|\ref| 交叉引用显示正确数字，无 \verb|??| 错误。
+  \item 表格包含标题与自动编号，正文引用正常，三线表格式规范。
+\end{enumerate}
+
+\end{document}
